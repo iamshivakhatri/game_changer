@@ -9,7 +9,7 @@ const openai = new OpenAI({
 // Import Google AI SDK
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Google AI client
+// Initialize Google AI client with API version v1
 const googleAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
 
 export async function POST(req: Request) {
@@ -165,9 +165,9 @@ async function enhanceWithGoogleAI(jobDescription: string, existingData: any) {
     // Extract existing experience, projects, and skills
     const { experience, projects, skills } = existingData;
 
-    // Setup Google AI Studio model (using Gemini Pro)
+    // Setup Google AI Studio model (using Gemini 1.5 Pro)
     const model = googleAI.getGenerativeModel({
-      model: "gemini-pro",
+      model: "gemini-1.5-pro",
     });
 
     const prompt = `
