@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGlobalContext } from "@/context/global-context";
 import { toast } from "react-hot-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 
 interface ResumeUploadProps {
   data: {
