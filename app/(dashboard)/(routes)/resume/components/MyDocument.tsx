@@ -45,7 +45,10 @@ const MyDocument: React.FC<MyDocumentProps> = ({
     page: {
       flexDirection: 'column',
       backgroundColor: '#FFFFFF',
-      padding: 30,
+      paddingLeft: 40,
+      paddingRight: 40,
+      paddingTop: 30,
+      paddingBottom: 20,
       fontFamily: font || 'Carlito', // Use passed font family or default to Carlito
       width: 1000,
       scale: 1.2,
@@ -169,7 +172,8 @@ const MyDocument: React.FC<MyDocumentProps> = ({
 
 
   return (
-    <Document>
+    // <Document>
+    <div>
       <Page size={{ width: 612, height: 792 }} style={styles.page}>
         <View style={styles.outerSection}>
           <View style={styles.innerSectionLeft}>
@@ -270,7 +274,7 @@ const MyDocument: React.FC<MyDocumentProps> = ({
           {skillsData && skillsData?.map((skill, index) => (
             <View key={index}>
               <View style={styles.skillContainer}>
-                <Text style={styles.boldLabel}>Languages: </Text>
+                <Text style={styles.boldLabel}>Technical Skills: </Text>
                 <Text style={styles.value}>{skill?.languages}</Text>
               </View>
               <View style={styles.skillContainer}>
@@ -281,7 +285,8 @@ const MyDocument: React.FC<MyDocumentProps> = ({
           ))}
         </View>
       </Page>
-    </Document>
+      </div>
+    // </Document>
   );
 };
 
