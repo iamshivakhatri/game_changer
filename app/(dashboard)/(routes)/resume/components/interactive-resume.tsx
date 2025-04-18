@@ -43,6 +43,8 @@ const InteractiveResume: React.FC<InteractiveResumeProps> = ({ togglePdfView }) 
 
   // Format bullet points for display
   const formatBulletPoints = (text: string, isEditable = false) => {
+    if (!text) return [];
+    
     return text
       .split('\n')
       .filter(line => line.trim())
@@ -192,6 +194,21 @@ const InteractiveResume: React.FC<InteractiveResumeProps> = ({ togglePdfView }) 
     }
   };
 
+  // Process API response to ensure it matches expected format 
+  const processContentResponse = (content: string): string => {
+    if (!content) return '';
+    
+    // Ensure line breaks are preserved
+    const lines = content
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line)
+      // Remove any leading dashes, bullets, or other markers
+      .map(line => line.replace(/^[-•*#]\s*/, '').trim());
+    
+    return lines.join('\n');
+  };
+
   // Handle enhance action - immediate execution
   const handleEnhance = async () => {
     if (!selectedSection) return;
@@ -200,64 +217,55 @@ const InteractiveResume: React.FC<InteractiveResumeProps> = ({ togglePdfView }) 
     toast.loading("Enhancing content...");
     
     try {
+      // Get the content to enhance based on section type
+      let content = '';
+      
       if (type === 'experience') {
-        // Enhance experience
-        const exp = experienceData[index];
-        
-        // Enhanced bullet points
-        const bulletPoints = exp.detailed_experience.split('\n')
-          .filter(p => p.trim())
-          .map(p => p.replace(/^•\s*/, '').trim())
-          .map(p => {
-            // Add action verbs and make more impactful
-            if (!p.startsWith("Led") && !p.startsWith("Managed") && !p.startsWith("Developed")) {
-              return `• Led efforts to ${p}`;
-            }
-            return `• ${p}`;
-          });
-        
-        // Update the experience data
+        content = experienceData[index].detailed_experience;
+      } else if (type === 'project') {
+        content = projectData[index].description;
+      } else {
+        toast.dismiss();
+        toast.error("Enhancement not supported for this section type");
+        return;
+      }
+      
+      // Call the enhance API
+      const response = await fetch('/api/gpt/enhance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to enhance content');
+      }
+      
+      const data = await response.json();
+      const enhancedContent = processContentResponse(data.result);
+      
+      // Update the appropriate data store
+      if (type === 'experience') {
         const updatedData = [...experienceData];
         updatedData[index] = {
           ...updatedData[index],
-          detailed_experience: bulletPoints.join('\n')
+          detailed_experience: enhancedContent,
         };
         addExperienceData(updatedData);
-        setHasBeenEdited(true);
-        toast.dismiss();
-        toast.success("Content enhanced!");
-      } 
-      else if (type === 'project') {
-        // Enhance project
-        const project = projectData[index];
-        
-        // Enhanced bullet points
-        const bulletPoints = project.description.split('\n')
-          .filter(p => p.trim())
-          .map(p => p.replace(/^•\s*/, '').trim())
-          .map(p => {
-            // Add technical emphasis
-            if (!p.includes("implemented") && !p.includes("developed") && !p.includes("created")) {
-              return `• Successfully implemented ${p} with significant performance improvements`;
-            }
-            return `• ${p} resulting in improved efficiency`;
-          });
-        
-        // Update the project data
+      } else if (type === 'project') {
         const updatedData = [...projectData];
         updatedData[index] = {
           ...updatedData[index],
-          description: bulletPoints.join('\n')
+          description: enhancedContent,
         };
         addProjectData(updatedData);
-        setHasBeenEdited(true);
-        toast.dismiss();
-        toast.success("Content enhanced!");
       }
-      else {
-        toast.dismiss();
-        toast.error("Enhancement not supported for this section type");
-      }
+      
+      setHasBeenEdited(true);
+      toast.dismiss();
+      toast.success("Content enhanced!");
     } catch (error) {
       console.error('Error enhancing content:', error);
       toast.dismiss();
@@ -273,62 +281,55 @@ const InteractiveResume: React.FC<InteractiveResumeProps> = ({ togglePdfView }) 
     toast.loading("Shortening content...");
     
     try {
+      // Get the content to shorten based on section type
+      let content = '';
+      
       if (type === 'experience') {
-        // Shorten experience
-        const exp = experienceData[index];
-        
-        // Shortened bullet points
-        const bulletPoints = exp.detailed_experience.split('\n')
-          .filter(p => p.trim())
-          .slice(0, Math.max(3, Math.floor(exp.detailed_experience.split('\n').length / 2)))
-          .map(p => p.replace(/^•\s*/, '').trim())
-          .map(p => {
-            // Make points more concise
-            const words = p.split(' ');
-            return `• ${words.slice(0, Math.min(10, words.length)).join(' ')}${words.length > 10 ? '...' : ''}`;
-          });
-        
-        // Update the experience data
+        content = experienceData[index].detailed_experience;
+      } else if (type === 'project') {
+        content = projectData[index].description;
+      } else {
+        toast.dismiss();
+        toast.error("Shortening not supported for this section type");
+        return;
+      }
+      
+      // Call the shorten API
+      const response = await fetch('/api/gpt/shorten', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to shorten content');
+      }
+      
+      const data = await response.json();
+      const shortenedContent = processContentResponse(data.result);
+      
+      // Update the appropriate data store
+      if (type === 'experience') {
         const updatedData = [...experienceData];
         updatedData[index] = {
           ...updatedData[index],
-          detailed_experience: bulletPoints.join('\n')
+          detailed_experience: shortenedContent,
         };
         addExperienceData(updatedData);
-        setHasBeenEdited(true);
-        toast.dismiss();
-        toast.success("Content shortened!");
-      } 
-      else if (type === 'project') {
-        // Shorten project
-        const project = projectData[index];
-        
-        // Shortened bullet points
-        const bulletPoints = project.description.split('\n')
-          .filter(p => p.trim())
-          .slice(0, Math.min(3, project.description.split('\n').length))
-          .map(p => p.replace(/^•\s*/, '').trim())
-          .map(p => {
-            // Make points more concise
-            const words = p.split(' ');
-            return `• ${words.slice(0, Math.min(8, words.length)).join(' ')}${words.length > 8 ? '...' : ''}`;
-          });
-        
-        // Update the project data
+      } else if (type === 'project') {
         const updatedData = [...projectData];
         updatedData[index] = {
           ...updatedData[index],
-          description: bulletPoints.join('\n')
+          description: shortenedContent,
         };
         addProjectData(updatedData);
-        setHasBeenEdited(true);
-        toast.dismiss();
-        toast.success("Content shortened!");
       }
-      else {
-        toast.dismiss();
-        toast.error("Shortening not supported for this section type");
-      }
+      
+      setHasBeenEdited(true);
+      toast.dismiss();
+      toast.success("Content shortened!");
     } catch (error) {
       console.error('Error shortening content:', error);
       toast.dismiss();
@@ -342,7 +343,7 @@ const InteractiveResume: React.FC<InteractiveResumeProps> = ({ togglePdfView }) 
     
     // Only show dialog for chat function
     const content = getSelectedSectionContent();
-    setChatPrompt(`Here is my ${selectedSection.type} content:\n\n${content}\n\nI'd like advice on how to improve it.`);
+    setChatPrompt(`Here is my ${selectedSection.type} content:\n\nI'd like advice on how to improve it.`);
     setChatResponse('');
     setChatDialogOpen(true);
   };
@@ -354,22 +355,112 @@ const InteractiveResume: React.FC<InteractiveResumeProps> = ({ togglePdfView }) 
     setIsChatLoading(true);
     
     try {
-      // In a real app, you would call your API here
-      // Simulate API call with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { type, index } = selectedSection;
       
-      setChatResponse("Here's my feedback on your content:\n\n" +
-        "1. Your experience description is well-structured.\n" +
-        "2. Consider quantifying your achievements with metrics.\n" +
-        "3. Use more action verbs at the beginning of each bullet point.\n" +
-        "4. Highlight specific technologies or methodologies you used.\n" +
-        "5. Make sure to emphasize the impact of your work.");
+      // Get the content to edit based on section type
+      let content = '';
+      
+      if (type === 'experience') {
+        content = experienceData[index].detailed_experience;
+      } else if (type === 'project') {
+        content = projectData[index].description;
+      } else if (type === 'education') {
+        content = educationData[index].coursework;
+      } else if (type === 'skill') {
+        content = `Technical Skills: ${skillsData[index].languages}\nFrameworks: ${skillsData[index].frameworks}`;
+      } else if (type === 'personal') {
+        content = getSelectedSectionContent();
+      } else {
+        throw new Error('Unsupported section type');
+      }
+      
+      // Call the edit API
+      const response = await fetch('/api/gpt/edit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          content, 
+          instruction: chatPrompt 
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to edit content');
+      }
+      
+      const data = await response.json();
+      const editedContent = processContentResponse(data.result);
+      
+      // Show the edited content in the response area
+      setChatResponse(editedContent);
+      
+      // Add button to apply changes
+      setChatDialogFooterContent(
+        <Button 
+          onClick={() => applyEditedContent(editedContent)}
+          className="ml-2"
+        >
+          Apply Changes
+        </Button>
+      );
     } catch (error) {
       console.error('Error processing chat request:', error);
       setChatResponse('An error occurred while processing your request. Please try again.');
     } finally {
       setIsChatLoading(false);
     }
+  };
+  
+  // State for custom dialog footer content
+  const [chatDialogFooterContent, setChatDialogFooterContent] = useState<React.ReactNode>(null);
+  
+  // Apply edited content from chat dialog
+  const applyEditedContent = (editedContent: string) => {
+    if (!selectedSection) return;
+    
+    const { type, index } = selectedSection;
+    
+    // Update the appropriate data store based on section type
+    if (type === 'experience') {
+      const updatedData = [...experienceData];
+      updatedData[index] = {
+        ...updatedData[index],
+        detailed_experience: editedContent,
+      };
+      addExperienceData(updatedData);
+    } else if (type === 'project') {
+      const updatedData = [...projectData];
+      updatedData[index] = {
+        ...updatedData[index],
+        description: editedContent,
+      };
+      addProjectData(updatedData);
+    } else if (type === 'education') {
+      const updatedData = [...educationData];
+      updatedData[index] = {
+        ...updatedData[index],
+        coursework: editedContent,
+      };
+      addEducationData(updatedData);
+    } else if (type === 'skill') {
+      // Parse the edited content for skills
+      const techMatch = editedContent.match(/Technical Skills: (.*?)(?:\n|$)/);
+      const frameworksMatch = editedContent.match(/Frameworks: (.*?)(?:\n|$)/);
+      
+      const updatedData = [...skillsData];
+      updatedData[index] = {
+        ...updatedData[index],
+        languages: techMatch ? techMatch[1] : skillsData[index].languages,
+        frameworks: frameworksMatch ? frameworksMatch[1] : skillsData[index].frameworks,
+      };
+      addSkillsData(updatedData);
+    }
+    
+    setHasBeenEdited(true);
+    toast.success("Changes applied!");
+    setChatDialogOpen(false);
   };
 
   // Safe PDF toggle handler that works even after edits
@@ -787,23 +878,24 @@ const InteractiveResume: React.FC<InteractiveResumeProps> = ({ togglePdfView }) 
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
-              Chat About Content
+              Edit Resume Content
             </DialogTitle>
           </DialogHeader>
           
           <div className="py-4">
             <div className="mb-4">
-              <label className="text-sm font-medium mb-2 block">Your prompt:</label>
+              <label className="text-sm font-medium mb-2 block">Your instruction for editing:</label>
               <Textarea 
                 value={chatPrompt} 
                 onChange={(e) => setChatPrompt(e.target.value)}
                 className="min-h-[100px]"
+                placeholder="Examples: Make this more suitable for a tech role, Add more data-driven results, Focus on leadership skills..."
               />
             </div>
             
             {chatResponse && (
               <div className="mt-4">
-                <label className="text-sm font-medium mb-2 block">Response:</label>
+                <label className="text-sm font-medium mb-2 block">Edited content:</label>
                 <div className="p-3 bg-muted rounded-md whitespace-pre-wrap">
                   {chatResponse}
                 </div>
@@ -819,8 +911,9 @@ const InteractiveResume: React.FC<InteractiveResumeProps> = ({ togglePdfView }) 
               onClick={processChatResponse} 
               disabled={isChatLoading}
             >
-              {isChatLoading ? 'Processing...' : 'Send'}
+              {isChatLoading ? 'Processing...' : 'Generate'}
             </Button>
+            {chatDialogFooterContent}
           </DialogFooter>
         </DialogContent>
       </Dialog>
